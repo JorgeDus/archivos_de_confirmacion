@@ -20,6 +20,9 @@ def transformar_tipo(tipo, rut):
 
 # Función principal para procesar el archivo
 def procesar_archivo(df):
+    # Filtrar filas donde 'Referencia' contiene "-"
+    df = df[~df["Referencia"].str.contains("-", na=False)]
+
     # Renombrar columnas según los requerimientos
     columnas_nuevas = {
         "Acreedor": "Rut emisor",
@@ -54,6 +57,7 @@ def procesar_archivo(df):
         archivos_por_sociedad[sociedad] = grupo[["Rut emisor", "Tipo de Documento", "Folio", "Monto a pagar", "Fecha a pagar"]]
 
     return archivos_por_sociedad
+
 
 # Configuración de la app Streamlit
 st.title("Procesador de archivos de confirmación")
