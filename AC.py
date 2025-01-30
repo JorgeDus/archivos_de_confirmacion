@@ -61,8 +61,8 @@ def procesar_archivo_innova(df):
 st.title("Procesador de archivos de confirmación")
 
 # Sección 1: Subir archivos estándar
-st.header("Procesar archivo estándar")
-archivo_subido = st.file_uploader("Subir archivo estándar", type=["xlsx", "xls"], key="archivo_estandar")
+st.header("Procesar archivo Saesa")
+archivo_subido = st.file_uploader("Subir archivo Saesa", type=["xlsx", "xls"], key="archivo_estandar")
 if archivo_subido is not None:
     try:
         df = pd.read_excel(archivo_subido)
