@@ -52,9 +52,8 @@ def procesar_archivo(df):
 
 # Segunda función para procesar archivos de Innova
 def procesar_archivo_innova(df):
-    df["Referencia"] = df["Referencia"].astype(str).str.replace(".", "", regex=True)
-    df = df[~df["Referencia"].str.contains("-", na=False)]
-    df["Referencia"] = df["Referencia"].str.rstrip(".")
+    df["Referencia"] = df["Referencia"].astype(str).str.split(".").str[0]
+    
 
     return procesar_archivo(df)
 
