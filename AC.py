@@ -22,7 +22,7 @@ def transformar_tipo(tipo, rut):
 def procesar_archivo(df):
     
     # Filtrar filas donde 'Referencia' contiene "-"
-    df["Referencia"] = df['Referencia'].astype(str).str.replace('.', '', regex=True)
+    df["Referencia"] = df['Referencia'].astype(str).str.replace('.', '', regex=True).str.split('-').str[0]
     df = df[~df["Referencia"].str.contains("-", na=False)]
     
     # Renombrar columnas según los requerimientos
