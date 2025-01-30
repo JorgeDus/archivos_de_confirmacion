@@ -18,13 +18,11 @@ def transformar_tipo(tipo, rut):
     else:
         return tipo
 
-# Función principal para procesar el archivo
 def procesar_archivo(df):
-    
-    # Filtrar filas donde 'Referencia' contiene "-"
+    # Asegurar que la columna 'Referencia' sea de tipo cadena y filtrar filas donde contiene "-"
     df["Referencia"] = df['Referencia'].astype(str).str.replace('.', '', regex=True)
     df = df[~df["Referencia"].str.contains("-", na=False)]
-    
+
     # Renombrar columnas según los requerimientos
     columnas_nuevas = {
         "Acreedor": "Rut emisor",
