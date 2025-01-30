@@ -20,14 +20,10 @@ def transformar_tipo(tipo, rut):
 
 # Función principal para procesar el archivo
 def procesar_archivo(df):
-    # Asegurar que la columna 'Referencia' sea de tipo cadena y filtrar filas donde contiene "-"
     df["Referencia"] = df["Referencia"].astype(str)
     df = df[~df["Referencia"].str.contains("-", na=False)]
-
-    # Eliminar puntos al final de los valores en 'Referencia'
     df["Referencia"] = df["Referencia"].str.rstrip(".")
-    
-    # Renombrar columnas según los requerimientos
+
     columnas_nuevas = {
         "Acreedor": "Rut emisor",
         "Clase de documento": "Tipo de Documento",
@@ -37,75 +33,70 @@ def procesar_archivo(df):
     }
     df = df.rename(columns=columnas_nuevas)
 
-    # Aplicar transformación al 'Tipo de Documento'
     df["Tipo de Documento"] = df.apply(
         lambda row: transformar_tipo(row["Tipo de Documento"], row["Rut emisor"]), axis=1
     )
 
-    # Limpiar y transformar el 'Monto a pagar'
     df["Monto a pagar"] = (
-        df["Monto a pagar"]
-        .astype(str)  # Convertir a texto para manipular
-        .str.replace(".", "", regex=False)  # Eliminar puntos
-        .astype(float)  # Convertir a número
-        .abs()  # Hacer positivo
-        .astype(int)  # Convertir a entero
+        df["Monto a pagar"].astype(str).str.replace(".", "", regex=False)
+        .astype(float).abs().astype(int)
     )
 
-    # Formatear la fecha a 'dd-mm-aaaa'
     df["Fecha a pagar"] = pd.to_datetime(df["Fecha a pagar"], errors="coerce").dt.strftime("%d-%m-%Y")
 
-    # Agrupar por 'Sociedad' y crear un archivo por cada grupo
     archivos_por_sociedad = {}
     for sociedad, grupo in df.groupby("Sociedad"):
         archivos_por_sociedad[sociedad] = grupo[["Rut emisor", "Tipo de Documento", "Folio", "Monto a pagar", "Fecha a pagar"]]
 
     return archivos_por_sociedad
 
+# Segunda función para procesar archivos de Innova
+def procesar_archivo_innova(df):
+    df["Referencia"] = df["Referencia"].astype(str).str.replace(".", "", regex=True)
+    df = df[~df["Referencia"].str.contains("-", na=False)]
+    df["Referencia"] = df["Referencia"].str.rstrip(".")
+
+    return procesar_archivo(df)
 
 # Configuración de la app Streamlit
 st.title("Procesador de archivos de confirmación")
-st.write("Sube un archivo Excel con los datos a procesar:")
 
-# Subida de archivo
-archivo_subido = st.file_uploader("Subir archivo", type=["xlsx", "xls"])
-
+# Sección 1: Subir archivos estándar
+st.header("Procesar archivo estándar")
+archivo_subido = st.file_uploader("Subir archivo estándar", type=["xlsx", "xls"], key="archivo_estandar")
 if archivo_subido is not None:
     try:
-        # Leer archivo Excel
         df = pd.read_excel(archivo_subido)
-
-        # Procesar archivo
         dfs_por_sociedad = procesar_archivo(df)
-
-        # Crear un archivo ZIP para guardar los archivos procesados
         zip_nombre = "archivos_confirmacion.zip"
         with zipfile.ZipFile(zip_nombre, "w") as zipf:
             for sociedad, df_sociedad in dfs_por_sociedad.items():
-                # Crear un nombre de archivo único para cada sociedad
-                timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-                nombre_archivo = f"Data_{sociedad}_{timestamp}.xlsx"
-
-                # Guardar el DataFrame en un archivo Excel
+                nombre_archivo = f"Data_{sociedad}_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}.xlsx"
                 df_sociedad.to_excel(nombre_archivo, index=False)
-
-                # Añadir el archivo al ZIP
                 zipf.write(nombre_archivo)
-
-                # Eliminar el archivo temporal para no acumular basura
                 os.remove(nombre_archivo)
-
-        # Ofrecer el archivo ZIP para descargar
         with open(zip_nombre, "rb") as file:
-            st.download_button(
-                label="Descargar todos los archivos en un ZIP",
-                data=file,
-                file_name=zip_nombre,
-                mime="application/zip"
-            )
-
-        # Eliminar el archivo ZIP temporal después de la descarga
+            st.download_button("Descargar ZIP", data=file, file_name=zip_nombre, mime="application/zip")
         os.remove(zip_nombre)
-
     except Exception as e:
-        st.error(f"Hubo un error al procesar el archivo: {e}")
+        st.error(f"Error: {e}")
+
+# Sección 2: Subir archivos de Innova
+st.header("Procesar archivo de Innova")
+archivo_innova = st.file_uploader("Subir archivo de Innova", type=["xlsx", "xls"], key="archivo_innova")
+if archivo_innova is not None:
+    try:
+        df = pd.read_excel(archivo_innova)
+        dfs_por_sociedad = procesar_archivo_innova(df)
+        zip_nombre = "archivos_innova.zip"
+        with zipfile.ZipFile(zip_nombre, "w") as zipf:
+            for sociedad, df_sociedad in dfs_por_sociedad.items():
+                nombre_archivo = f"Data_Innova_{sociedad}_{datetime.now().strftime('%Y_%m_%d_%H_%M_%S')}.xlsx"
+                df_sociedad.to_excel(nombre_archivo, index=False)
+                zipf.write(nombre_archivo)
+                os.remove(nombre_archivo)
+        with open(zip_nombre, "rb") as file:
+            st.download_button("Descargar ZIP", data=file, file_name=zip_nombre, mime="application/zip")
+        os.remove(zip_nombre)
+    except Exception as e:
+        st.error(f"Error: {e}")
